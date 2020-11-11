@@ -5,26 +5,30 @@ from django.views.generic import View
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from api import historical2
+from api import historical
 import api
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
-from .forms import CustomUserCreationForm, BuyForm
+from .forms import CustomUserCreationForm, BuyForm, SellForm, SetWatchPriceForm
 from django.contrib.auth.models import User
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Stock, WatchListItem
-from api.search_v2 import Api
+from .models import Stock, WatchListItem, WatchListAlert
+from api.search import Api
 import watchlist
 import prediction
 from django.views.generic import (
     ListView
 )
 import buy_sell
+from watchprice import Watchprice
+import transactions
+import purchases
+import leaderboard
 import pandas as pd
-import requests
 from datetime import datetime
+import requests
 import plotly.graph_objects as go
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -38,16 +42,14 @@ User = get_user_model()
 @login_required
 def stock_list(request):
     stocks = Stock.objects.all()
-    frontend_stocks = {'stocks': stocks}
-    return render(request, 'simulator/sidebar.html', frontend_stocks)
+    return render(request, 'simulator/sidebar.html', {'stocks': stocks})
 
 
 @login_required
 def stock_detail(request, code):
     # stock = get_object_or_404(Stock, code=code)
     stock = Stock.objects.get(code=code)
-    frontend_stock = {'stock': stock}
-    return render(request, 'simulator/stock_detail.html', frontend_stock)
+    return render(request, 'simulator/stock_detail.html', {'stock': stock})
 
 
 def signup(request):
@@ -62,28 +64,6 @@ def signup(request):
         form = CustomUserCreationForm()
 
     return render(request, 'simulator/signup.html', {'form': form})
-
-# @login_required
-# @transaction.atomic
-# def update_profile(request):
-#     if request.method == 'POST':
-#         user_form = UserForm(request.POST, instance=request.user)
-#         profile_form = ProfileForm(request.POST, instance=request.user.profile)
-#         if user_form.is_valid() and profile_form.is_valid():
-#             user_form.save()
-#             profile_form.save()
-#             messages.success(request, _('Your profile was successfully updated!'))
-#             return redirect('settings:profile')
-#         else:
-#             messages.error(request, _('Please correct the error below.'))
-#     else:
-#         user_form = UserForm(instance=request.user)
-#         profile_form = ProfileForm(instance=request.user.profile)
-#     return render(request, 'profiles/profile.html', {
-#         'user_form': user_form,
-#         'profile_form': profile_form
-#     })
-
 
 @login_required
 def search_view(request):
@@ -111,9 +91,10 @@ def add_to_watchlist(request, code):
 
 
 @login_required
+
 def my_watchlist_view(request, errors={}, display='false'):
-    wlist = watchlist.list_watchlist(request.user)
-    context = {'wlist': wlist, 'errors': errors, 'display': display}
+    wlist, errors_2 = watchlist.list_watchlist(request.user, errors)
+    context = {'wlist': wlist, 'errors': errors_2, 'display': display}
     return render(request, 'simulator/my_watchlist.html', context)
 
 
@@ -131,21 +112,61 @@ def buy_stock(request, code):
             amount = form.save()
             errors = buy_sell.buy(code, amount, request.user)
             return my_watchlist_view(request, errors)
+            # return redirect('watchlist', errors=errors)
     else:
         form = BuyForm()
-
     return render(request, 'simulator/buy_form.html', {'form': form})
 
 
 @login_required
 def sell_stock(request, code):
-    errors = buy_sell.sell(code, 3, request.user)
-    return my_watchlist_view(request, errors)
+    if request.method == 'POST':
+        form = SellForm(request.POST)
+        if form.is_valid():
+            amount = form.save()
+            errors = buy_sell.sell(code, amount, request.user)
+            return my_watchlist_view(request, errors)
+    else:
+        form = SellForm()
+    return render(request, 'simulator/sell_form.html', {'form': form})
 
+@login_required
+def transactions_view(request):
+    trans = transactions.get_user_transactions(request.user)
+    date = pd.to_datetime(datetime.now().timestamp(), unit='s')
+    context = {'transactions':trans, 'datetime': date}
+    return render(request, 'simulator/transactions.html', context)
+
+@login_required
+def purchases_view(request, defaultCode=""):
+    purchase_summary = purchases.get_purchases_info(request.user, False)
+    codes = purchases.get_unique_purchases_codes(request.user, False)
+    context = {'purchases':purchase_summary, 'codes':codes, "defaultCode":defaultCode}
+    return render(request, 'simulator/purchases.html', context)
+
+@login_required
+def purchasesIncludeSold_view(request, defaultCode=""):
+    purchase_summary = purchases.get_purchases_info(request.user, True)
+    codes = purchases.get_unique_purchases_codes(request.user, True)
+    context = {'purchases':purchase_summary, 'includeSold':True, 'codes':codes, "defaultCode":defaultCode}
+    return render(request, 'simulator/purchases.html', context)
+
+@login_required
+def portfolio_view(request, display='false'):
+    portfolio_summary, total_portfolio_profit = purchases.get_portfolio_info(request.user)
+    context = {'portfolio':portfolio_summary, 'total_portfolio_profit':total_portfolio_profit, 'display': display}
+    return render(request, 'simulator/my_portfolio.html', context)
+
+@login_required
+def leaderboard_view(request):
+    lboard = leaderboard.get_leaderboard_info()
+    username = request.user.get_username()
+    context = {'leaderboard':lboard, 'username':username}
+    return render(request, 'simulator/leaderboard.html', context)
 
 @login_required
 def gen_graph(request, code, date):
-    historical2.get_historical(code, date)
+    historical.get_historical(code, date)
     return HttpResponseRedirect('../../my_watchlist/display=true/')
 
 
@@ -153,11 +174,39 @@ def gen_graph(request, code, date):
 def show_graph(request):
     return render(request, 'simulator/graph.html')
 
+@login_required
+def gen_graph(request, code, date):
+    historical.get_historical(code, date)
+    return HttpResponseRedirect('../../my_portfolio/display=true/')
 
-class WatchListView(ListView):
-    template_name = "simulator/my_watchlist.html"
-    queryset = WatchListItem.objects.all()
-    context_object_name = 'wlist'
+@login_required
+def alerts(request):
+    alerts = WatchListAlert.objects.filter(user_id=request.user).reverse()
+    return render(request, 'simulator/alerts.html', {'alerts': alerts})
+
+@login_required
+def set_watchprice(request, code):
+    if request.method == 'POST':
+        form = SetWatchPriceForm(request.POST)
+        if form.is_valid():
+            price, action = form.save()
+            w = Watchprice()
+            errors = w.set(code, price, request.user, action)
+            return my_watchlist_view(request, errors)
+    else:
+        form = SetWatchPriceForm()
+    return render(request, 'simulator/set_watchprice.html', {'form': form})
+
+@login_required
+def remove_watchprice(request, id):
+    w = Watchprice()
+    errors = w.remove(request.user, id)
+    return my_watchlist_view(request, errors)
+
+# class WatchListView(ListView):
+#     template_name = "simulator/my_watchlist.html"
+#     queryset = WatchListItem.objects.all()
+#     context_object_name = 'wlist'
 
 
 class ChartView(View):
