@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import RedirectView
 from django.conf.urls import url
 from django.contrib import admin
 from . import views
@@ -68,5 +69,6 @@ urlpatterns = [
     path('my_portfolio/<str:code>/<str:date>', views.gen_graph, name='portfolio_graph'),
 
     # Show graph
-    path('my_portfolio/graph.html/', views.show_graph, name='portfolio_plot')
+    path('my_portfolio/graph.html/', views.show_graph, name='portfolio_plot'),
+    path('favicon.ico', RedirectView.as_view(url='https://www.clipartmax.com/png/middle/446-4466697_hermes-free-icon-hermes-icon-png.png'))
 ]
