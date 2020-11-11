@@ -65,7 +65,7 @@
             "hashes": [
                 "sha256:8639b6f78f04f34294cb465b308992a84297df41033519efd85b3a6b186b5296"
             ],
-            "index": "pip3",
+            "index": "pypi",
             "version": "==0.0.7"
         },
         "djangorestframework": {
