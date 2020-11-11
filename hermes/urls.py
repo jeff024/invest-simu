@@ -21,10 +21,10 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('/admin/', admin.site.urls),
     # 127.0.0.1:8000/accounts/login
-    path('accounts/login/', auth_views.LoginView.as_view(), name='login'),
+    path('/accounts/login/', auth_views.LoginView.as_view(), name='login'),
     # 127.0.0.1:8000/accounts/logout
-    path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('/accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('', include('simulator.urls'))
 ]+ static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
