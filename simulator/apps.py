@@ -7,8 +7,8 @@ class SimulatorConfig(AppConfig):
     name = 'simulator'
     def ready(self):
         try:
-            from watchprice import Watchprice
+            from modules.watchprice import Watchprice
             Watchprice = Watchprice()
             Watchprice.start_up()
-        except Exception:
+        except:
             pass

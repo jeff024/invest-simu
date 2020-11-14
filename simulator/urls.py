@@ -1,10 +1,12 @@
 from django.urls import path
-from django.views.generic import RedirectView
 from django.conf.urls import url
 from django.contrib import admin
 from . import views
 from .views import ChartView, get_data
 
+'''
+This file contains all the valid url paths for the Hermes Web Application.
+'''
 
 urlpatterns = [
     # 127.0.0.1:8000/
@@ -24,9 +26,8 @@ urlpatterns = [
     path('add_watchlist/<str:code>/', views.add_to_watchlist, name='add'),
     path('my_watchlist/display=<str:display>/', views.my_watchlist_view, name='watchlist'),
     path('my_portfolio/display=<str:display>/', views.portfolio_view, name='graph'),
-
-    # path('my_watchlist/', WatchListView.as_view(), name='add'),
     path('remove_watchlist/<str:code>/', views.remove_watchlist, name='remove'),
+    
     # Set Watch price 
     path('set_watchprice/<str:code>/', views.set_watchprice, name='set_watchprice'),
     path('remove_watchprice/<str:id>/', views.remove_watchprice, name='remove_watchprice'),
@@ -66,9 +67,8 @@ urlpatterns = [
     path('my_watchlist/graph.html/', views.show_graph, name='plot'),
 
     # Generate graph
-    path('my_portfolio/<str:code>/<str:date>', views.gen_graph, name='portfolio_graph'),
+    path('my_portfolio/<str:code>/<str:date>', views.gen_graph_port, name='portfolio_graph'),
 
     # Show graph
-    path('my_portfolio/graph.html/', views.show_graph, name='portfolio_plot'),
-    path('favicon.ico', RedirectView.as_view(url='https://www.clipartmax.com/png/middle/446-4466697_hermes-free-icon-hermes-icon-png.png'))
+    path('my_portfolio/graph.html/', views.show_graph, name='portfolio_plot')
 ]

@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
-import django_heroku
+
 from pathlib import Path
 import os
 
@@ -29,7 +29,7 @@ DEBUG = True
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 LOGIN_REDIRECT_URL = 'stock_list'
 LOGOUT_REDIRECT_URL = '/'
@@ -142,4 +142,3 @@ XS_SHARING_ALLOWED_METHODS = ['POST','GET','OPTIONS', 'PUT', 'DELETE']
 
 DJANGO_AUTH_MODEL="hermes.User"
 
-django_heroku.settings(locals())
