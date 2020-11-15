@@ -35,7 +35,8 @@ import modules.leaderboard as leaderboard
 import modules.watchlist as watchlist
 import modules.prediction as prediction
 from modules.watchprice import Watchprice
-
+from datetime import datetime
+import time
 
 '''
 This file contains the views which are used to render the html
@@ -110,7 +111,9 @@ def add_to_watchlist(request, code):
 
 @login_required
 def my_watchlist_view(request, messages={}, display='false'):
-    wlist, messages_2 = watchlist.list_watchlist(request.user, messages)
+    messages_2 = {}
+    wlist, messages_2 = watchlist.list_watchlist(request.user, messages_2)
+    messages.update(messages_2)    
     context = {'wlist': wlist, 'messages': messages_2, 'display': display}
     return render(request, 'simulator/my_watchlist.html', context)
 
@@ -209,6 +212,8 @@ def show_graph(request):
 
 @login_required
 def gen_graph_port(request, code, date):
+    now = datetime.now()
+    date = datetime.timestamp(now)
     historical.get_historical(code, date)
     return HttpResponseRedirect('../../my_portfolio/display=true/')
 
